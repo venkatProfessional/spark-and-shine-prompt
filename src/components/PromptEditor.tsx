@@ -26,6 +26,7 @@ export const PromptEditor: React.FC = () => {
     updatePrompt, 
     deletePrompt, 
     enhancePrompt,
+    enhancePromptWithAI,
     setCurrentPrompt 
   } = usePrompts();
   
@@ -40,6 +41,9 @@ export const PromptEditor: React.FC = () => {
   const [newTag, setNewTag] = useState('');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [enhancementLevel, setEnhancementLevel] = useState<'spark' | 'glow' | 'shine'>('glow');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [useAI, setUseAI] = useState(true);
+  const [enhancementSummary, setEnhancementSummary] = useState<string[]>([]);
 
   // Load current prompt data
   useEffect(() => {
@@ -92,7 +96,7 @@ export const PromptEditor: React.FC = () => {
     }
   };
 
-  const handleEnhance = () => {
+  const handleEnhance = async () => {
     if (!content.trim()) {
       toast({
         title: "Content Required",
@@ -102,19 +106,51 @@ export const PromptEditor: React.FC = () => {
       return;
     }
 
-    const enhanced = enhancePrompt(content, enhancementLevel);
-    setEnhancedContent(enhanced);
+    setIsEnhancing(true);
     
-    const levelEmojis = {
-      spark: '✨',
-      glow: '🌟',
-      shine: '💫'
-    };
-    
-    toast({
-      title: `${levelEmojis[enhancementLevel]} Enhancement Complete`,
-      description: `Applied ${enhancementLevel} level enhancement to your prompt!`,
-    });
+    try {
+      let enhanced: string;
+      let summary: string[] = [];
+      
+      if (useAI) {
+        const result = await enhancePromptWithAI(content, enhancementLevel);
+        enhanced = result.enhancedContent;
+        summary = result.improvementsSummary;
+        setEnhancementSummary(summary);
+      } else {
+        enhanced = enhancePrompt(content, enhancementLevel);
+        summary = ['Applied local enhancement'];
+        setEnhancementSummary(summary);
+      }
+      
+      setEnhancedContent(enhanced);
+      
+      const levelEmojis = {
+        spark: '✨',
+        glow: '🌟',
+        shine: '💫'
+      };
+      
+      toast({
+        title: `${levelEmojis[enhancementLevel]} ${useAI ? 'AI' : 'Local'} Enhancement Complete`,
+        description: `Applied ${enhancementLevel} level enhancement to your prompt!`,
+      });
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      
+      // Fallback to local enhancement
+      const enhanced = enhancePrompt(content, enhancementLevel);
+      setEnhancedContent(enhanced);
+      setEnhancementSummary(['Applied local enhancement (AI unavailable)']);
+      
+      toast({
+        title: "⚠️ AI Enhancement Failed",
+        description: "Used local enhancement instead",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   const handleDelete = () => {
@@ -288,6 +324,15 @@ export const PromptEditor: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setUseAI(!useAI)}
+                    className={useAI ? 'bg-success text-white' : 'bg-muted'}
+                  >
+                    <Settings className="h-3 w-3 mr-1" />
+                    {useAI ? 'AI' : 'Local'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setEnhancementLevel('spark')}
                     className={enhancementLevel === 'spark' ? 'bg-primary text-primary-foreground' : ''}
                   >
@@ -314,10 +359,11 @@ export const PromptEditor: React.FC = () => {
                   </Button>
                   <Button
                     onClick={handleEnhance}
+                    disabled={isEnhancing}
                     className="gradient-success text-white"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Enhance
+                    {isEnhancing ? 'Enhancing...' : 'Enhance'}
                   </Button>
                 </div>
               </div>
@@ -348,15 +394,31 @@ export const PromptEditor: React.FC = () => {
               
               <div className="min-h-[400px] bg-success/5 border-2 border-success/20 rounded-lg p-4">
                 {enhancedContent ? (
-                  <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {enhancedContent}
-                  </pre>
+                  <div className="space-y-4">
+                    <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {enhancedContent}
+                    </pre>
+                    {enhancementSummary.length > 0 && (
+                      <div className="border-t border-border pt-3">
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Improvements Applied:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          {enhancementSummary.map((improvement, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-success mr-1">•</span>
+                              {improvement}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
                       <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">Enhanced content will appear here</p>
                       <p className="text-xs mt-1">Click "Enhance" to get started!</p>
+                      <p className="text-xs mt-2 text-primary">✨ AI-powered enhancement available</p>
                     </div>
                   </div>
                 )}

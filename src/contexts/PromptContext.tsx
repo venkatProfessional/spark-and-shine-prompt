@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { enhancePromptWithAI as callAIEnhancement, EnhancementResult } from '../services/aiEnhanceService';
 
 export interface Prompt {
   id: string;
@@ -28,6 +29,7 @@ interface PromptContextType {
   exportPrompts: () => void;
   importPrompts: (file: File) => Promise<boolean>;
   enhancePrompt: (content: string, level: 'spark' | 'glow' | 'shine') => string;
+  enhancePromptWithAI: (content: string, level: 'spark' | 'glow' | 'shine', context?: string) => Promise<EnhancementResult>;
 }
 
 const PromptContext = createContext<PromptContextType | undefined>(undefined);
@@ -182,6 +184,31 @@ export const PromptProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return enhancement;
   };
 
+  const enhancePromptWithAI = async (content: string, level: 'spark' | 'glow' | 'shine', context?: string): Promise<EnhancementResult> => {
+    if (!content.trim()) {
+      throw new Error('Content cannot be empty');
+    }
+
+    // Auto-detect context if not provided
+    let detectedContext = context;
+    if (!detectedContext) {
+      const codeKeywords = /\b(code|programming|function|variable|algorithm|debug|script)\b/i;
+      const creativeKeywords = /\b(story|creative|writing|poem|narrative|character|plot)\b/i;
+      const analyticalKeywords = /\b(analyze|research|data|statistics|report|findings)\b/i;
+
+      if (codeKeywords.test(content)) detectedContext = 'technical';
+      else if (creativeKeywords.test(content)) detectedContext = 'creative';
+      else if (analyticalKeywords.test(content)) detectedContext = 'analytical';
+      else detectedContext = 'general';
+    }
+
+    return await callAIEnhancement({
+      content,
+      level,
+      context: detectedContext
+    });
+  };
+
   return (
     <PromptContext.Provider value={{
       prompts,
@@ -193,7 +220,8 @@ export const PromptProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       searchPrompts,
       exportPrompts,
       importPrompts,
-      enhancePrompt
+      enhancePrompt,
+      enhancePromptWithAI
     }}>
       {children}
     </PromptContext.Provider>
