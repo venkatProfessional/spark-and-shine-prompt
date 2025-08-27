@@ -1,6 +1,6 @@
 // AI Enhancement Service using DeepSeek V3-0324 via OpenRouter
 const OPENROUTER_API_KEY = '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';
-const DEEPSEEK_MODEL = 'deepseek/deepseek-v3';
+const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3-0324';
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export interface AIEnhanceOptions {
@@ -106,7 +106,13 @@ export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<En
     });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
