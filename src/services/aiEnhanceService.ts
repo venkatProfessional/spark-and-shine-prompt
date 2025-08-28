@@ -89,6 +89,20 @@ ${level === 'spark' ? `
 Respond ONLY with the JSON object, no additional text.`;
 };
 
+// Format enhanced content for better readability
+const formatEnhancedContent = (content: string): string => {
+  return content
+    // Replace escaped newlines with actual newlines
+    .replace(/\\n/g, '\n')
+    // Replace multiple spaces with single space
+    .replace(/\s+/g, ' ')
+    // Clean up extra whitespace around newlines
+    .replace(/\n\s+/g, '\n')
+    .replace(/\s+\n/g, '\n')
+    // Remove leading/trailing whitespace
+    .trim();
+};
+
 // Production-ready AI enhancement with retry logic and model fallbacks
 export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
   const models = [MISTRAL_MODELS.primary, MISTRAL_MODELS.fallback, MISTRAL_MODELS.fast];
@@ -189,21 +203,27 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
 
     // Parse and validate JSON response
     try {
-      const parsedResponse = JSON.parse(aiResponse);
+      // Clean the AI response - sometimes it comes wrapped in ```json blocks
+      const cleanedResponse = aiResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+      const parsedResponse = JSON.parse(cleanedResponse);
       
       if (!parsedResponse.enhancedContent || !Array.isArray(parsedResponse.improvementsSummary)) {
         throw new Error('Invalid response structure from AI');
       }
 
+      // Format the enhanced content for better readability
+      const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
+
       return {
-        enhancedContent: parsedResponse.enhancedContent,
+        enhancedContent: formattedContent,
         improvementsSummary: parsedResponse.improvementsSummary || [],
         confidence: Math.min(Math.max(parsedResponse.confidence || 0.8, 0), 1)
       };
     } catch (parseError) {
       // Fallback: treat entire response as enhanced content
+      const formattedContent = formatEnhancedContent(aiResponse);
       return {
-        enhancedContent: aiResponse,
+        enhancedContent: formattedContent,
         improvementsSummary: ['AI enhancement applied (partial parsing)'],
         confidence: 0.7
       };
