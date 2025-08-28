@@ -1,7 +1,19 @@
-// AI Enhancement Service using DeepSeek V3-0324 via OpenRouter
+// AI Enhancement Service using Mistral models via OpenRouter
 const OPENROUTER_API_KEY = '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';
-const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3-0324';
+const MISTRAL_MODELS = {
+  primary: 'mistralai/mistral-large-2407',
+  fallback: 'mistralai/mistral-small-2402',
+  fast: 'mistralai/mistral-7b-instruct'
+};
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// Production-ready configuration
+const REQUEST_CONFIG = {
+  timeout: 30000,
+  maxRetries: 3,
+  retryDelay: 1000,
+  backoffMultiplier: 2
+};
 
 export interface AIEnhanceOptions {
   level: 'spark' | 'glow' | 'shine';
@@ -77,10 +89,55 @@ ${level === 'spark' ? `
 Respond ONLY with the JSON object, no additional text.`;
 };
 
+// Production-ready AI enhancement with retry logic and model fallbacks
 export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
-  try {
-    const prompt = getEnhancementPrompt(options.content, options.level, options.context);
+  const models = [MISTRAL_MODELS.primary, MISTRAL_MODELS.fallback, MISTRAL_MODELS.fast];
+  
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex];
     
+    for (let attempt = 0; attempt < REQUEST_CONFIG.maxRetries; attempt++) {
+      try {
+        const result = await makeAIRequest(options, model, attempt);
+        return result;
+      } catch (error) {
+        console.warn(`Attempt ${attempt + 1} failed with model ${model}:`, error);
+        
+        // If it's the last attempt with the last model, fall back to local
+        if (attempt === REQUEST_CONFIG.maxRetries - 1 && modelIndex === models.length - 1) {
+          console.error('All AI enhancement attempts failed, using local fallback');
+          return {
+            enhancedContent: getLocalFallbackEnhancement(options.content, options.level),
+            improvementsSummary: ['Applied local enhancement (AI unavailable)'],
+            confidence: 0.5
+          };
+        }
+        
+        // Wait before retry (exponential backoff)
+        if (attempt < REQUEST_CONFIG.maxRetries - 1) {
+          const delay = REQUEST_CONFIG.retryDelay * Math.pow(REQUEST_CONFIG.backoffMultiplier, attempt);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  }
+  
+  // This should never be reached, but just in case
+  return {
+    enhancedContent: getLocalFallbackEnhancement(options.content, options.level),
+    improvementsSummary: ['Applied local enhancement (fallback)'],
+    confidence: 0.5
+  };
+};
+
+// Separate function for making AI requests
+const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: number): Promise<EnhancementResult> => {
+  const prompt = getEnhancementPrompt(options.content, options.level, options.context);
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_CONFIG.timeout);
+  
+  try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -90,28 +147,36 @@ export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<En
         'X-Title': 'PromptCraft AI Enhancer'
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+        model,
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 2000,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('API Error Details:', {
+        model,
+        attempt: attempt + 1,
         status: response.status,
         statusText: response.statusText,
         error: errorData
       });
+      
+      // Check if it's a rate limit error
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      
       throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
@@ -122,11 +187,10 @@ export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<En
       throw new Error('No response from AI model');
     }
 
-    // Parse the JSON response
+    // Parse and validate JSON response
     try {
       const parsedResponse = JSON.parse(aiResponse);
       
-      // Validate the response structure
       if (!parsedResponse.enhancedContent || !Array.isArray(parsedResponse.improvementsSummary)) {
         throw new Error('Invalid response structure from AI');
       }
@@ -134,25 +198,18 @@ export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<En
       return {
         enhancedContent: parsedResponse.enhancedContent,
         improvementsSummary: parsedResponse.improvementsSummary || [],
-        confidence: parsedResponse.confidence || 0.8
+        confidence: Math.min(Math.max(parsedResponse.confidence || 0.8, 0), 1)
       };
     } catch (parseError) {
-      // Fallback: treat the entire response as enhanced content
+      // Fallback: treat entire response as enhanced content
       return {
         enhancedContent: aiResponse,
-        improvementsSummary: ['AI enhancement applied'],
+        improvementsSummary: ['AI enhancement applied (partial parsing)'],
         confidence: 0.7
       };
     }
-  } catch (error) {
-    console.error('AI Enhancement Error:', error);
-    
-    // Fallback to local enhancement
-    return {
-      enhancedContent: getLocalFallbackEnhancement(options.content, options.level),
-      improvementsSummary: ['Applied local enhancement (AI unavailable)'],
-      confidence: 0.5
-    };
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
@@ -188,7 +245,7 @@ export const testAIConnection = async (): Promise<boolean> => {
         'X-Title': 'PromptCraft Connection Test'
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
+        model: MISTRAL_MODELS.fast,
         messages: [{ role: 'user', content: 'Hello, can you respond with just "OK"?' }],
         max_tokens: 10
       })
