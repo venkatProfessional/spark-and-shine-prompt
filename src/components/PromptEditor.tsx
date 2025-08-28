@@ -15,9 +15,9 @@ import {
   Tag, 
   Eye,
   EyeOff,
-  RotateCcw,
   Settings
 } from 'lucide-react';
+import AIEnhancementLoader from './AIEnhancementLoader';
 
 export const PromptEditor: React.FC = () => {
   const { 
@@ -444,6 +444,9 @@ export const PromptEditor: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* AI Enhancement Loader */}
+      <AIEnhancementLoader isVisible={isEnhancing} />
     </div>
   );
 };
