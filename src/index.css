@@ -209,12 +209,39 @@
 
   /* Enhanced Editor Styles */
   .prompt-editor {
-    @apply rounded-lg border-2 border-input bg-card p-4 min-h-[200px] focus-within:border-primary transition-colors;
+    @apply rounded-lg border-2 border-input bg-card p-4 min-h-[200px] focus-within:border-primary transition-all duration-300;
   }
 
-  .prompt-editor:focus {
+  .prompt-editor:focus-within {
     outline: none;
     box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .prompt-editor {
+      @apply p-3 min-h-[250px] text-base;
+    }
+  }
+
+  /* Performance optimizations */
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Better focus indicators for accessibility */
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none;
   }
 
   /* Diff Highlighting */

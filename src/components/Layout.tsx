@@ -82,10 +82,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
-      <div className="w-80 bg-card border-r border-border shadow-soft">
+      {/* Sidebar - Responsive */}
+      <div className="hidden lg:flex lg:w-80 xl:w-96 bg-card border-r border-border shadow-soft flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-border">
+        <div className="p-4 lg:p-6 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
               PromptCraft
@@ -163,7 +163,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
 
         {/* Prompts List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 lg:p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-sm text-muted-foreground">
               Your Prompts ({filteredPrompts.length})
@@ -172,7 +172,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               variant="ghost"
               size="sm"
               onClick={() => setCurrentPrompt(null)}
-              className="p-2"
+              className="p-2 hover:bg-muted/50 transition-colors"
               title="New Prompt"
             >
               <Plus className="h-4 w-4" />
@@ -239,8 +239,37 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       </div>
 
+      {/* Mobile Header - Only visible on mobile */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-lg font-bold gradient-primary bg-clip-text text-transparent">
+            PromptCraft
+          </h1>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="p-2"
+            >
+              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentPrompt(null)}
+              className="p-2"
+              title="New Prompt"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col lg:ml-0">
+        <div className="lg:hidden h-16" /> {/* Spacer for mobile header */}
         {children}
       </div>
     </div>

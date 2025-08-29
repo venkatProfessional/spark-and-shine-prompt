@@ -104,44 +104,164 @@ const formatEnhancedContent = (content: string): string => {
 };
 
 // Production-ready AI enhancement with retry logic and model fallbacks
-export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
-  const models = [MISTRAL_MODELS.primary, MISTRAL_MODELS.fallback, MISTRAL_MODELS.fast];
+// Enhanced AI service with improved reliability and state management
+class AIEnhancementService {
+  private static instance: AIEnhancementService;
+  private connectionState: 'unknown' | 'connected' | 'disconnected' = 'unknown';
+  private lastSuccessfulRequest: number = 0;
+  private consecutiveFailures: number = 0;
+  private isOfflineMode: boolean = false;
   
-  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
-    const model = models[modelIndex];
+  public static getInstance(): AIEnhancementService {
+    if (!AIEnhancementService.instance) {
+      AIEnhancementService.instance = new AIEnhancementService();
+    }
+    return AIEnhancementService.instance;
+  }
+  
+  private constructor() {
+    // Check initial connection status
+    this.checkConnectionStatus();
     
-    for (let attempt = 0; attempt < REQUEST_CONFIG.maxRetries; attempt++) {
-      try {
-        const result = await makeAIRequest(options, model, attempt);
-        return result;
-      } catch (error) {
-        console.warn(`Attempt ${attempt + 1} failed with model ${model}:`, error);
-        
-        // If it's the last attempt with the last model, fall back to local
-        if (attempt === REQUEST_CONFIG.maxRetries - 1 && modelIndex === models.length - 1) {
-          console.error('All AI enhancement attempts failed, using local fallback');
-          return {
-            enhancedContent: getLocalFallbackEnhancement(options.content, options.level),
-            improvementsSummary: ['Applied local enhancement (AI unavailable)'],
-            confidence: 0.5
-          };
-        }
-        
-        // Wait before retry (exponential backoff)
-        if (attempt < REQUEST_CONFIG.maxRetries - 1) {
-          const delay = REQUEST_CONFIG.retryDelay * Math.pow(REQUEST_CONFIG.backoffMultiplier, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
+    // Monitor online/offline status
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.isOfflineMode = false;
+        this.checkConnectionStatus();
+      });
+      
+      window.addEventListener('offline', () => {
+        this.isOfflineMode = true;
+        this.connectionState = 'disconnected';
+      });
     }
   }
   
-  // This should never be reached, but just in case
-  return {
-    enhancedContent: getLocalFallbackEnhancement(options.content, options.level),
-    improvementsSummary: ['Applied local enhancement (fallback)'],
-    confidence: 0.5
-  };
+  private async checkConnectionStatus(): Promise<void> {
+    try {
+      const isConnected = await testAIConnection();
+      this.connectionState = isConnected ? 'connected' : 'disconnected';
+      if (isConnected) {
+        this.consecutiveFailures = 0;
+        this.lastSuccessfulRequest = Date.now();
+      }
+    } catch (error) {
+      this.connectionState = 'disconnected';
+    }
+  }
+  
+  public getConnectionState(): 'unknown' | 'connected' | 'disconnected' {
+    return this.connectionState;
+  }
+  
+  public isReliable(): boolean {
+    const timeSinceLastSuccess = Date.now() - this.lastSuccessfulRequest;
+    return (
+      !this.isOfflineMode &&
+      this.connectionState === 'connected' &&
+      this.consecutiveFailures < 3 &&
+      timeSinceLastSuccess < 5 * 60 * 1000 // 5 minutes
+    );
+  }
+  
+  private async enhanceWithRetry(options: AIEnhanceOptions): Promise<EnhancementResult> {
+    const models = ['mistralai/mistral-large', 'mistralai/mistral-medium', 'mistralai/mistral-small'];
+    let lastError: Error | null = null;
+    
+    // If we're in offline mode or connection is known to be bad, use local enhancement
+    if (this.isOfflineMode || (!this.isReliable() && this.consecutiveFailures >= 3)) {
+      return this.getLocalFallback(options);
+    }
+    
+    // Try each model with smart retry logic
+    for (const model of models) {
+      const maxRetries = this.consecutiveFailures > 5 ? 2 : 3; // Reduce retries if we've been failing
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const result = await this.makeAIRequestWithTimeout(options, model, attempt);
+          
+          // Success! Update our connection state
+          this.consecutiveFailures = 0;
+          this.lastSuccessfulRequest = Date.now();
+          this.connectionState = 'connected';
+          
+          return result;
+        } catch (error) {
+          console.warn(`AI Enhancement attempt ${attempt} failed with model ${model}:`, error);
+          lastError = error as Error;
+          this.consecutiveFailures++;
+          
+          // Smart backoff: longer delays if we've been failing
+          if (attempt < maxRetries) {
+            const baseDelay = Math.pow(2, attempt) * 1000;
+            const jitterDelay = baseDelay + Math.random() * 1000;
+            const adaptiveDelay = Math.min(jitterDelay * (1 + this.consecutiveFailures * 0.2), 10000);
+            
+            await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
+          }
+        }
+      }
+    }
+    
+    // All models failed, update connection state and fall back
+    this.connectionState = 'disconnected';
+    console.error('All AI models failed, falling back to local enhancement');
+    
+    return this.getLocalFallback(options);
+  }
+  
+  private async makeAIRequestWithTimeout(
+    options: AIEnhanceOptions, 
+    model: string, 
+    attempt: number
+  ): Promise<EnhancementResult> {
+    // Adaptive timeout based on previous failures
+    const baseTimeout = 30000; // 30 seconds base
+    const adaptiveTimeout = Math.min(baseTimeout + (this.consecutiveFailures * 5000), 60000);
+    
+    return Promise.race([
+      makeAIRequest(options, model, attempt),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), adaptiveTimeout)
+      )
+    ]);
+  }
+  
+  private getLocalFallback(options: AIEnhanceOptions): EnhancementResult {
+    const localResult = getLocalFallbackEnhancement(options.content, options.level);
+    return {
+      enhancedContent: localResult,
+      improvementsSummary: [
+        'Applied local enhancement (AI service unavailable)',
+        'Content structure improved',
+        'Basic formatting applied'
+      ],
+      confidence: 0.4
+    };
+  }
+  
+  // Public method for external use
+  public async enhance(options: AIEnhanceOptions): Promise<EnhancementResult> {
+    return this.enhanceWithRetry(options);
+  }
+  
+  // Method to force connection check
+  public async refreshConnection(): Promise<boolean> {
+    await this.checkConnectionStatus();
+    return this.connectionState === 'connected';
+  }
+}
+
+// Enhanced main export function
+export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
+  const service = AIEnhancementService.getInstance();
+  return service.enhance(options);
+};
+
+// Export service instance for advanced usage
+export const getAIService = (): AIEnhancementService => {
+  return AIEnhancementService.getInstance();
 };
 
 // Separate function for making AI requests

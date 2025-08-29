@@ -8,19 +8,29 @@ import { PromptProvider } from "./contexts/PromptContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./components/LoginPage";
 import { Dashboard } from "./components/Dashboard";
+import ErrorBoundary from "./components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <PromptProvider>
-          <BrowserRouter>
-            <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <PromptProvider>
+            <BrowserRouter>
+              <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route 
                 path="/" 
@@ -47,12 +57,13 @@ const App = () => (
                   </AuthProvider>
                 } 
               />
-            </Routes>
-          </BrowserRouter>
-        </PromptProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+              </Routes>
+            </BrowserRouter>
+          </PromptProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
