@@ -26,14 +26,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPrompts, setFilteredPrompts] = useState(prompts);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   React.useEffect(() => {
-    // Load theme preference
+    // Load theme preference - default to dark mode
     const savedTheme = localStorage.getItem('promptcraft_theme');
-    if (savedTheme === 'dark') {
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      // Default to dark mode
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+      if (!savedTheme) {
+        localStorage.setItem('promptcraft_theme', 'dark');
+      }
     }
   }, []);
 
