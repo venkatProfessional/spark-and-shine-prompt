@@ -6,7 +6,7 @@ import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { useIsMobile } from '../hooks/use-mobile';
-import { getAIService } from '../services/aiEnhanceService';
+import { getAIService, enhancePromptWithAI } from '../services/aiEnhanceService';
 import { 
   Save, 
   Sparkles, 
@@ -31,7 +31,6 @@ export const PromptEditor: React.FC = React.memo(() => {
     updatePrompt, 
     deletePrompt, 
     enhancePrompt,
-    enhancePromptWithAI,
     setCurrentPrompt 
   } = usePrompts();
   
@@ -154,9 +153,9 @@ export const PromptEditor: React.FC = React.memo(() => {
       
       if (useAI) {
         const result = await enhancePromptWithAI({
-          content, 
+          content,
           level: enhancementLevel,
-          context: category 
+          context: category
         });
         enhanced = result.enhancedContent;
         summary = result.improvementsSummary;
@@ -199,7 +198,7 @@ export const PromptEditor: React.FC = React.memo(() => {
     } finally {
       setIsEnhancing(false);
     }
-  }, [content, enhancementLevel, category, useAI, enhancePromptWithAI, enhancePrompt, toast]);
+  }, [content, enhancementLevel, category, useAI, enhancePrompt, toast]);
 
   const handleRefreshConnection = React.useCallback(async () => {
     setIsRefreshingConnection(true);
