@@ -10,7 +10,7 @@ export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, signup } = useAuth();
+  const { login, signup, loginAsGuest } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,6 +141,16 @@ export const LoginPage: React.FC = () => {
             ) : (
               isLogin ? 'Sign In' : 'Create Account'
             )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={loginAsGuest}
+            className="w-full mb-4"
+            disabled={isLoading}
+          >
+            Continue as Guest
           </Button>
 
           <div className="text-center space-y-3">

@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
   signup: (username: string, password: string) => Promise<boolean>;
+  loginAsGuest: () => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -113,13 +114,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginAsGuest = () => {
+    const guestUser: User = {
+      id: 'guest',
+      username: 'Guest User',
+      role: 'user'
+    };
+    setUser(guestUser);
+    // Don't save guest session to localStorage so it's temporary
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('promptcraft_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, loginAsGuest, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
