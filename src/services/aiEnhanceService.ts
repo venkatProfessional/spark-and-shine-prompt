@@ -1,5 +1,5 @@
 // AI Enhancement Service using Mistral models via OpenRouter
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 const MISTRAL_MODELS = {
   primary: 'mistralai/mistral-large-2407',
   fallback: 'mistralai/mistral-small-2402',
@@ -167,6 +167,11 @@ class AIEnhancementService {
   private async enhanceWithRetry(options: AIEnhanceOptions): Promise<EnhancementResult> {
     const models = [MISTRAL_MODELS.primary, MISTRAL_MODELS.fallback, MISTRAL_MODELS.fast];
     let lastError: Error | null = null;
+    
+    // Check if API key is available
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OpenRouter API key not configured. Please add your API key to continue using AI enhancement.');
+    }
     
     // Only use local fallback if explicitly offline
     if (this.isOfflineMode) {
