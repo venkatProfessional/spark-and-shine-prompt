@@ -165,20 +165,24 @@ class AIEnhancementService {
   }
   
   private async enhanceWithRetry(options: AIEnhanceOptions): Promise<EnhancementResult> {
-    const models = ['mistralai/mistral-large', 'mistralai/mistral-medium', 'mistralai/mistral-small'];
+    const models = [MISTRAL_MODELS.primary, MISTRAL_MODELS.fallback, MISTRAL_MODELS.fast];
     let lastError: Error | null = null;
     
-    // If we're in offline mode or connection is known to be bad, use local enhancement
-    if (this.isOfflineMode || (!this.isReliable() && this.consecutiveFailures >= 3)) {
-      return this.getLocalFallback(options);
+    // Only use local fallback if explicitly offline
+    if (this.isOfflineMode) {
+      throw new Error('Device is offline. Please check your internet connection and try again.');
     }
     
-    // Try each model with smart retry logic
+    // Always attempt AI enhancement when explicitly requested
+    console.log('Starting AI enhancement with models:', models);
+    
+    // Try each model with persistent retry logic
     for (const model of models) {
-      const maxRetries = this.consecutiveFailures > 5 ? 2 : 3; // Reduce retries if we've been failing
+      const maxRetries = 4; // More aggressive retries
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+          console.log(`Attempting AI enhancement with ${model}, attempt ${attempt}`);
           const result = await this.makeAIRequestWithTimeout(options, model, attempt);
           
           // Success! Update our connection state
@@ -186,29 +190,28 @@ class AIEnhancementService {
           this.lastSuccessfulRequest = Date.now();
           this.connectionState = 'connected';
           
+          console.log('AI enhancement successful!');
           return result;
         } catch (error) {
           console.warn(`AI Enhancement attempt ${attempt} failed with model ${model}:`, error);
           lastError = error as Error;
           this.consecutiveFailures++;
           
-          // Smart backoff: longer delays if we've been failing
+          // Shorter delays for more responsive retries
           if (attempt < maxRetries) {
-            const baseDelay = Math.pow(2, attempt) * 1000;
-            const jitterDelay = baseDelay + Math.random() * 1000;
-            const adaptiveDelay = Math.min(jitterDelay * (1 + this.consecutiveFailures * 0.2), 10000);
-            
-            await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
+            const delay = Math.min(1000 * attempt, 3000); // Max 3 second delay
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       }
     }
     
-    // All models failed, update connection state and fall back
+    // All models failed - throw error instead of falling back
     this.connectionState = 'disconnected';
-    console.error('All AI models failed, falling back to local enhancement');
+    const errorMessage = `AI enhancement failed after trying all models. ${lastError?.message || 'Unknown error'}`;
+    console.error(errorMessage);
     
-    return this.getLocalFallback(options);
+    throw new Error(errorMessage);
   }
   
   private async makeAIRequestWithTimeout(

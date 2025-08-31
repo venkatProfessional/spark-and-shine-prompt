@@ -152,13 +152,26 @@ export const PromptEditor: React.FC = React.memo(() => {
       let summary: string[] = [];
       
       if (useAI) {
-        const result = await enhancePromptWithAI({
-          content,
-          level: enhancementLevel,
-          context: category
-        });
-        enhanced = result.enhancedContent;
-        summary = result.improvementsSummary;
+        try {
+          const result = await enhancePromptWithAI({
+            content,
+            level: enhancementLevel,
+            context: category
+          });
+          enhanced = result.enhancedContent;
+          summary = result.improvementsSummary;
+        } catch (aiError) {
+          console.error('AI Enhancement failed:', aiError);
+          toast({
+            title: "AI Enhancement Failed",
+            description: "Falling back to local enhancement. Please check your connection and try again.",
+            variant: "destructive",
+          });
+          
+          // Fallback to local enhancement
+          enhanced = enhancePrompt(content, enhancementLevel);
+          summary = ['Applied local enhancement (AI service unavailable)', 'Content structure improved', 'Basic formatting applied'];
+        }
         setEnhancementSummary(summary);
         
         // Update connection state based on success
