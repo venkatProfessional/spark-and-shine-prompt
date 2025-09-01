@@ -332,27 +332,34 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
     // Parse and validate JSON response
     try {
       // Clean the AI response - sometimes it comes wrapped in ```json blocks
-      const cleanedResponse = aiResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-      const parsedResponse = JSON.parse(cleanedResponse);
+      let cleanedResponse = aiResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
       
-      if (!parsedResponse.enhancedContent || !Array.isArray(parsedResponse.improvementsSummary)) {
-        throw new Error('Invalid response structure from AI');
+      // Check if the response starts with { - it might be a JSON object
+      if (cleanedResponse.startsWith('{')) {
+        const parsedResponse = JSON.parse(cleanedResponse);
+        
+        // If it has enhancedContent property, extract it
+        if (parsedResponse.enhancedContent) {
+          const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
+          
+          return {
+            enhancedContent: formattedContent,
+            improvementsSummary: Array.isArray(parsedResponse.improvementsSummary) 
+              ? parsedResponse.improvementsSummary 
+              : [parsedResponse.improvementsSummary || 'AI enhancement applied'],
+            confidence: Math.min(Math.max(parsedResponse.confidence || 0.8, 0), 1)
+          };
+        }
       }
-
-      // Format the enhanced content for better readability
-      const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
-
-      return {
-        enhancedContent: formattedContent,
-        improvementsSummary: parsedResponse.improvementsSummary || [],
-        confidence: Math.min(Math.max(parsedResponse.confidence || 0.8, 0), 1)
-      };
+      
+      // If not JSON or doesn't have enhancedContent, treat as plain text
+      throw new Error('Not a valid JSON response');
     } catch (parseError) {
       // Fallback: treat entire response as enhanced content
       const formattedContent = formatEnhancedContent(aiResponse);
       return {
         enhancedContent: formattedContent,
-        improvementsSummary: ['AI enhancement applied (partial parsing)'],
+        improvementsSummary: ['AI enhancement applied'],
         confidence: 0.7
       };
     }
