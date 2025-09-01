@@ -52,6 +52,7 @@ export const PromptEditor: React.FC = React.memo(() => {
   const [enhancementSummary, setEnhancementSummary] = useState<string[]>([]);
   const [aiConnectionState, setAiConnectionState] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [isRefreshingConnection, setIsRefreshingConnection] = useState(false);
+  const [enhancementAbortController, setEnhancementAbortController] = useState<AbortController | null>(null);
 
   // Load current prompt data
   useEffect(() => {
@@ -145,6 +146,9 @@ export const PromptEditor: React.FC = React.memo(() => {
       return;
     }
 
+    // Create new AbortController for this enhancement
+    const abortController = new AbortController();
+    setEnhancementAbortController(abortController);
     setIsEnhancing(true);
     
     try {
@@ -156,11 +160,21 @@ export const PromptEditor: React.FC = React.memo(() => {
           const result = await enhancePromptWithAI({
             content,
             level: enhancementLevel,
-            context: category
+            context: category,
+            signal: abortController.signal
           });
           enhanced = result.enhancedContent;
           summary = result.improvementsSummary;
-        } catch (aiError) {
+        } catch (aiError: any) {
+          // Check if it was cancelled
+          if (aiError.name === 'AbortError' || aiError.message?.includes('cancelled')) {
+            toast({
+              title: "Enhancement Cancelled",
+              description: "AI enhancement was cancelled by user.",
+            });
+            return;
+          }
+          
           console.error('AI Enhancement failed:', aiError);
           toast({
             title: "AI Enhancement Failed",
@@ -194,7 +208,16 @@ export const PromptEditor: React.FC = React.memo(() => {
         title: `${levelEmojis[enhancementLevel]} ${useAI ? 'AI' : 'Local'} Enhancement Complete`,
         description: `Applied ${enhancementLevel} level enhancement to your prompt!`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it was cancelled
+      if (error.name === 'AbortError' || error.message?.includes('cancelled')) {
+        toast({
+          title: "Enhancement Cancelled",
+          description: "AI enhancement was cancelled by user.",
+        });
+        return;
+      }
+      
       console.error('Enhancement error:', error);
       
       // Update connection state and fallback to local enhancement
@@ -210,6 +233,7 @@ export const PromptEditor: React.FC = React.memo(() => {
       });
     } finally {
       setIsEnhancing(false);
+      setEnhancementAbortController(null);
     }
   }, [content, enhancementLevel, category, useAI, enhancePrompt, toast]);
 
@@ -236,7 +260,15 @@ export const PromptEditor: React.FC = React.memo(() => {
     } finally {
       setIsRefreshingConnection(false);
     }
-  }, [aiService, toast]);
+    }, [aiService, toast]);
+
+  const handleCancelEnhancement = React.useCallback(() => {
+    if (enhancementAbortController) {
+      enhancementAbortController.abort();
+      setEnhancementAbortController(null);
+      setIsEnhancing(false);
+    }
+  }, [enhancementAbortController]);
 
   const handleDelete = () => {
     if (currentPrompt && window.confirm('Are you sure you want to delete this prompt?')) {
@@ -583,7 +615,7 @@ export const PromptEditor: React.FC = React.memo(() => {
       </div>
 
       {/* AI Enhancement Loader */}
-      <AIEnhancementLoader isVisible={isEnhancing} />
+      <AIEnhancementLoader isVisible={isEnhancing} onCancel={handleCancelEnhancement} />
     </div>
   );
 });

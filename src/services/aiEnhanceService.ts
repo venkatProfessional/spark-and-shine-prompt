@@ -19,6 +19,7 @@ export interface AIEnhanceOptions {
   level: 'spark' | 'glow' | 'shine';
   content: string;
   context?: string;
+  signal?: AbortSignal;
 }
 
 export interface EnhancementResult {
@@ -224,15 +225,26 @@ class AIEnhancementService {
     model: string, 
     attempt: number
   ): Promise<EnhancementResult> {
+    // Check if already cancelled
+    if (options.signal?.aborted) {
+      throw new Error('Enhancement cancelled by user');
+    }
+    
     // Adaptive timeout based on previous failures
     const baseTimeout = 30000; // 30 seconds base
     const adaptiveTimeout = Math.min(baseTimeout + (this.consecutiveFailures * 5000), 60000);
     
     return Promise.race([
       makeAIRequest(options, model, attempt),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), adaptiveTimeout)
-      )
+      new Promise<never>((_, reject) => {
+        const timeoutId = setTimeout(() => reject(new Error('Request timeout')), adaptiveTimeout);
+        
+        // Listen for abort signal
+        options.signal?.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Enhancement cancelled by user'));
+        });
+      })
     ]);
   }
   
@@ -276,7 +288,12 @@ export const getAIService = (): AIEnhancementService => {
 const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: number): Promise<EnhancementResult> => {
   const prompt = getEnhancementPrompt(options.content, options.level, options.context);
   
+  // Use external abort signal if provided, otherwise create our own
   const controller = new AbortController();
+  const combinedSignal = options.signal ? 
+    AbortSignal.any([options.signal, controller.signal]) : 
+    controller.signal;
+  
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_CONFIG.timeout);
   
   try {
@@ -297,7 +314,7 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
         frequency_penalty: 0,
         presence_penalty: 0
       }),
-      signal: controller.signal
+      signal: combinedSignal
     });
 
     clearTimeout(timeoutId);
@@ -329,12 +346,27 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
       throw new Error('No response from AI model');
     }
 
-    // Parse and validate JSON response - handle all possible formats
+    // Parse and validate JSON response - handle all possible formats including malformed JSON
     try {
       let cleanedResponse = aiResponse.trim();
       
       // Remove markdown code blocks if present
       cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+      
+      // Handle case where AI returns JSON object starting with { "enhancedContent":
+      if (cleanedResponse.startsWith('{ "enhancedContent":') && !cleanedResponse.endsWith('}')) {
+        // This looks like a malformed JSON that was cut off, try to extract just the content
+        const match = cleanedResponse.match(/{ "enhancedContent":\s*"([^"]+)"/);
+        if (match) {
+          const extractedContent = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          const formattedContent = formatEnhancedContent(extractedContent);
+          return {
+            enhancedContent: formattedContent,
+            improvementsSummary: ['AI enhancement applied - JSON parsed'],
+            confidence: 0.8
+          };
+        }
+      }
       
       // Try to parse as JSON first
       let parsedResponse;

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Brain, Wand2, Zap } from 'lucide-react';
+import { Sparkles, Brain, Wand2, Zap, X } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface AIEnhancementLoaderProps {
   isVisible: boolean;
+  onCancel?: () => void;
 }
 
 const loadingMessages = [
@@ -15,7 +17,7 @@ const loadingMessages = [
   "💫 Almost ready with your enhanced prompt..."
 ];
 
-const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible }) => {
+const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, onCancel }) => {
   const [messageIndex, setMessageIndex] = useState(0);
   const [dots, setDots] = useState('');
 
@@ -110,6 +112,19 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible }) 
               />
             ))}
           </div>
+
+          {/* Cancel Button */}
+          {onCancel && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel Enhancement
+            </Button>
+          )}
 
           {/* Tips */}
           <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
