@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Wand2, Zap, X } from 'lucide-react';
-import { Button } from './ui/button';
 
 interface AIEnhancementLoaderProps {
   isVisible: boolean;
@@ -50,7 +49,17 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-      <div className="bg-card border border-border rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in">
+      <div className="bg-card border border-border rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in relative">
+        {/* Cancel X Button */}
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Cancel Enhancement"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         <div className="text-center space-y-6">
           {/* Animated Icons */}
           <div className="relative">
@@ -112,19 +121,6 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
               />
             ))}
           </div>
-
-          {/* Cancel Button */}
-          {onCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel Enhancement
-            </Button>
-          )}
 
           {/* Tips */}
           <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
