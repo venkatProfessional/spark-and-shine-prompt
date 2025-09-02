@@ -148,13 +148,25 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
                 {/* Orbiting particles */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-24 h-24 relative">
-                    <div className="absolute top-0 left-1/2 w-2 h-2 bg-primary rounded-full transform -translate-x-1/2 animate-spin origin-bottom-12">
+                    <div 
+                      className="absolute top-0 left-1/2 w-2 h-2 bg-primary rounded-full transform -translate-x-1/2 animate-spin"
+                      style={{ transformOrigin: '50% 48px' }}
+                    >
                       <div className="w-2 h-2 bg-primary rounded-full"></div>
                     </div>
-                    <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-secondary rounded-full transform -translate-x-1/2 animate-spin origin-bottom-12 delay-1000" style={{animationDirection: 'reverse'}}>
+                    <div 
+                      className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-secondary rounded-full transform -translate-x-1/2 animate-spin delay-1000"
+                      style={{ 
+                        transformOrigin: '50% 48px',
+                        animationDirection: 'reverse'
+                      }}
+                    >
                       <div className="w-1.5 h-1.5 bg-secondary rounded-full"></div>
                     </div>
-                    <div className="absolute top-0 left-1/2 w-1 h-1 bg-accent rounded-full transform -translate-x-1/2 animate-spin origin-bottom-12 delay-500">
+                    <div 
+                      className="absolute top-0 left-1/2 w-1 h-1 bg-accent rounded-full transform -translate-x-1/2 animate-spin delay-500"
+                      style={{ transformOrigin: '50% 48px' }}
+                    >
                       <div className="w-1 h-1 bg-accent rounded-full"></div>
                     </div>
                   </div>
