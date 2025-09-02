@@ -270,6 +270,19 @@ export const PromptEditor: React.FC = React.memo(() => {
     }
   }, [enhancementAbortController]);
 
+  const handleRestartEnhancement = React.useCallback(() => {
+    // This will be called if user clicks enhance while cancellation countdown is running
+    if (enhancementAbortController) {
+      enhancementAbortController.abort();
+      setEnhancementAbortController(null);
+    }
+    setIsEnhancing(false);
+    // Start enhancement again immediately
+    setTimeout(() => {
+      handleEnhance();
+    }, 100);
+  }, [enhancementAbortController, handleEnhance]);
+
   const handleDelete = () => {
     if (currentPrompt && window.confirm('Are you sure you want to delete this prompt?')) {
       deletePrompt(currentPrompt.id);
@@ -501,15 +514,15 @@ export const PromptEditor: React.FC = React.memo(() => {
                       {isMobile ? '' : 'Shine'}
                     </Button>
                   </div>
-                  <Button
-                    onClick={handleEnhance}
-                    disabled={isEnhancing || !content.trim()}
-                    size={isMobile ? "sm" : "default"}
-                    className="gradient-success text-white transition-all hover:shadow-glow disabled:opacity-50"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    {isEnhancing ? 'Enhancing...' : isMobile ? 'Enhance' : 'Enhance'}
-                  </Button>
+                   <Button
+                     onClick={isEnhancing ? handleRestartEnhancement : handleEnhance}
+                     disabled={!content.trim()}
+                     size={isMobile ? "sm" : "default"}
+                     className="gradient-success text-white transition-all hover:shadow-glow disabled:opacity-50"
+                   >
+                     <Sparkles className="h-4 w-4 mr-2" />
+                     {isEnhancing ? 'Restart' : isMobile ? 'Enhance' : 'Enhance'}
+                   </Button>
                 </div>
               </div>
               
@@ -615,7 +628,11 @@ export const PromptEditor: React.FC = React.memo(() => {
       </div>
 
       {/* AI Enhancement Loader */}
-      <AIEnhancementLoader isVisible={isEnhancing} onCancel={handleCancelEnhancement} />
+      <AIEnhancementLoader 
+        isVisible={isEnhancing} 
+        onCancel={handleCancelEnhancement}
+        onRestart={handleRestartEnhancement}
+      />
     </div>
   );
 });

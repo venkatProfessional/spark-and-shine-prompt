@@ -4,6 +4,7 @@ import { Sparkles, Brain, Wand2, Zap, X } from 'lucide-react';
 interface AIEnhancementLoaderProps {
   isVisible: boolean;
   onCancel?: () => void;
+  onRestart?: () => void;
 }
 
 const loadingMessages = [
@@ -16,11 +17,12 @@ const loadingMessages = [
   "💫 Almost ready with your enhanced prompt..."
 ];
 
-const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, onCancel }) => {
+const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, onCancel, onRestart }) => {
   const [messageIndex, setMessageIndex] = useState(0);
   const [dots, setDots] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelCountdown, setCancelCountdown] = useState(0);
+  const [cancelled, setCancelled] = useState(false);
 
   // Cycle through messages
   useEffect(() => {
@@ -52,10 +54,21 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
     if (!isVisible) {
       setIsCancelling(false);
       setCancelCountdown(0);
+      setCancelled(false);
       setMessageIndex(0);
       setDots('');
     }
   }, [isVisible]);
+
+  // Handle restart during cancellation
+  useEffect(() => {
+    if (isVisible && isCancelling && onRestart) {
+      // If the modal becomes visible again while cancelling, it means restart was clicked
+      setIsCancelling(false);
+      setCancelCountdown(0);
+      setCancelled(false);
+    }
+  }, [isVisible, isCancelling, onRestart]);
 
   // Handle cancellation countdown
   useEffect(() => {
@@ -64,8 +77,11 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
     const countdownInterval = setInterval(() => {
       setCancelCountdown((prev) => {
         if (prev <= 1) {
-          // Countdown finished, actually cancel
-          onCancel?.();
+          // Countdown finished, show cancelled message and then actually cancel
+          setCancelled(true);
+          setTimeout(() => {
+            onCancel?.();
+          }, 2000); // Show cancelled message for 2 seconds before closing
           return 0;
         }
         return prev - 1;
@@ -77,7 +93,7 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
 
   const handleCancel = () => {
     setIsCancelling(true);
-    setCancelCountdown(3); // 3 second countdown
+    setCancelCountdown(4); // 4 second countdown
   };
 
   if (!isVisible) return null;
@@ -99,39 +115,49 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
           {isCancelling ? (
             // Cancellation UI
             <>
-              {/* Warning Icon */}
-              <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <X className="w-8 h-8 text-destructive" />
-                </div>
-              </div>
-
-              {/* Countdown Timer */}
-              <div className="space-y-4">
-                <div className="w-20 h-20 mx-auto relative">
-                  <div className="w-full h-full rounded-full border-4 border-muted"></div>
-                  <div 
-                    className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-destructive border-t-transparent animate-spin"
-                    style={{ animationDuration: '1s' }}
-                  ></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-destructive">{cancelCountdown}</span>
+              {cancelled ? (
+                // Final cancelled message
+                <>
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <X className="w-8 h-8 text-destructive" />
+                    </div>
                   </div>
-                </div>
-                
-                <h3 className="text-lg font-semibold text-foreground">
-                  Cancelling Enhancement
-                </h3>
-                
-                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
-                  <p className="text-sm text-destructive font-medium">
-                    Please wait while the AI enhancement process is being cancelled.
-                  </p>
-                  <p className="text-xs text-destructive/80 mt-1">
-                    Do not close or refresh the page until the cancellation is complete.
-                  </p>
-                </div>
-              </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-destructive">
+                      AI Enhancement has been cancelled by the user.
+                    </h3>
+                  </div>
+                </>
+              ) : (
+                // Countdown UI
+                <>
+                  {/* Warning Icon */}
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <X className="w-8 h-8 text-destructive" />
+                    </div>
+                  </div>
+
+                  {/* Countdown Timer */}
+                  <div className="space-y-4">
+                    <div className="w-20 h-20 mx-auto relative">
+                      <div className="w-full h-full rounded-full border-4 border-muted"></div>
+                      <div 
+                        className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-destructive border-t-transparent animate-spin"
+                        style={{ animationDuration: '1s' }}
+                      ></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-destructive">{cancelCountdown}</span>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Canceling AI Enhancement... Please wait.
+                    </h3>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             // Normal Enhancement UI
