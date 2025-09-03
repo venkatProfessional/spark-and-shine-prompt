@@ -388,6 +388,7 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
         if (parsedResponse.enhancedContent) {
           const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
           
+          // Return ONLY the enhanced content - no JSON wrapper
           return {
             enhancedContent: formattedContent,
             improvementsSummary: Array.isArray(parsedResponse.improvementsSummary) 

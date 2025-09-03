@@ -60,15 +60,23 @@ const AIEnhancementLoader: React.FC<AIEnhancementLoaderProps> = ({ isVisible, on
     }
   }, [isVisible]);
 
-  // Handle restart during cancellation
-  useEffect(() => {
-    if (isVisible && isCancelling && onRestart) {
-      // If the modal becomes visible again while cancelling, it means restart was clicked
+  // Handle restart during cancellation - stop countdown and reset immediately
+  const handleRestart = React.useCallback(() => {
+    if (isCancelling) {
       setIsCancelling(false);
       setCancelCountdown(0);
       setCancelled(false);
+      onRestart?.();
     }
-  }, [isVisible, isCancelling, onRestart]);
+  }, [isCancelling, onRestart]);
+
+  useEffect(() => {
+    if (isVisible && !isCancelling) {
+      // Reset message cycling when enhancement restarts
+      setMessageIndex(0);
+      setDots('');
+    }
+  }, [isVisible, isCancelling]);
 
   // Handle cancellation countdown
   useEffect(() => {

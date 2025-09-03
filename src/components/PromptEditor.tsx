@@ -278,10 +278,8 @@ export const PromptEditor: React.FC = React.memo(() => {
       setEnhancementAbortController(null);
     }
     setIsEnhancing(false);
-    // Start enhancement again immediately
-    setTimeout(() => {
-      handleEnhance();
-    }, 100);
+    // Start enhancement again immediately without delay
+    handleEnhance();
   }, [enhancementAbortController, handleEnhance]);
 
   const handleDelete = () => {
