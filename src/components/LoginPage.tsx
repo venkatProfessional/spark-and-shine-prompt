@@ -77,14 +77,19 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-primary opacity-20 animate-gradient"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Enhanced animated background */}
+      <div className="absolute inset-0 bg-gradient-primary opacity-10 animate-gradient"></div>
+      <div className="absolute top-20 left-10 w-32 h-32 bg-accent/20 rounded-full blur-2xl animate-float"></div>
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-success/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
       
-      <Card className="w-full max-w-md p-8 bg-card/95 backdrop-blur-sm shadow-elegant relative z-10">
+      <Card className="w-full max-w-md p-8 bg-card/90 backdrop-blur-md shadow-glow border border-border/50 relative z-10 hover:shadow-elegant transition-all duration-500">
         <div className="text-center mb-8">
-          <div className="mb-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary shadow-glow animate-float">
-              <span className="text-2xl font-bold text-white">✨</span>
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full gradient-primary shadow-glow animate-float mb-4 relative">
+              <span className="text-3xl font-bold text-white animate-sparkle">✨</span>
+              <div className="absolute inset-0 rounded-full bg-gradient-primary opacity-30 blur-md animate-pulse"></div>
             </div>
           </div>
           <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">

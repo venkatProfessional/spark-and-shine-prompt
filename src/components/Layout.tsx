@@ -88,29 +88,37 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background relative overflow-hidden">
+      {/* Subtle animated background elements */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       {/* Sidebar - Responsive */}
-      <div className="hidden lg:flex lg:w-80 xl:w-96 bg-card border-r border-border shadow-soft flex-col">
-        {/* Header */}
-        <div className="p-4 lg:p-6 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
-              PromptCraft
-            </h1>
+      <div className="hidden lg:flex lg:w-80 xl:w-96 bg-card/80 backdrop-blur-md border-r border-border/50 shadow-elegant flex-col relative z-10">
+        {/* Enhanced Header */}
+        <div className="p-4 lg:p-6 border-b border-border/50 bg-gradient-to-r from-card to-card/50">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg gradient-primary shadow-soft flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white animate-sparkle" />
+              </div>
+              <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
+                PromptCraft
+              </h1>
+            </div>
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleTheme}
-                className="p-2"
+                className="p-2 hover:bg-muted/50 transition-all duration-300 hover:scale-110"
               >
-                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-primary" />}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="p-2 text-destructive hover:text-destructive/80"
+                className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-all duration-300"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
