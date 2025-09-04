@@ -108,8 +108,8 @@ const formatEnhancedContent = (content: string): string => {
 // Enhanced AI service with improved reliability and state management
 class AIEnhancementService {
   private static instance: AIEnhancementService;
-  private connectionState: 'unknown' | 'connected' | 'disconnected' = 'connected'; // Always start as connected
-  private lastSuccessfulRequest: number = Date.now(); // Set current time as last successful
+  private connectionState: 'unknown' | 'connected' | 'disconnected' = 'unknown';
+  private lastSuccessfulRequest: number = 0;
   private consecutiveFailures: number = 0;
   private isOfflineMode: boolean = false;
   
@@ -121,19 +121,19 @@ class AIEnhancementService {
   }
   
   private constructor() {
-    // Always stay connected - don't check connection status
-    this.connectionState = 'connected';
+    // Check initial connection status
+    this.checkConnectionStatus();
     
-    // Monitor online/offline status but keep AI online
+    // Monitor online/offline status
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         this.isOfflineMode = false;
-        this.connectionState = 'connected'; // Always connected
+        this.checkConnectionStatus();
       });
       
       window.addEventListener('offline', () => {
-        this.isOfflineMode = false; // Don't go offline mode
-        this.connectionState = 'connected'; // Keep connected
+        this.isOfflineMode = true;
+        this.connectionState = 'disconnected';
       });
     }
   }
@@ -152,11 +152,17 @@ class AIEnhancementService {
   }
   
   public getConnectionState(): 'unknown' | 'connected' | 'disconnected' {
-    return 'connected'; // Always return connected
+    return this.connectionState;
   }
   
   public isReliable(): boolean {
-    return true; // Always reliable
+    const timeSinceLastSuccess = Date.now() - this.lastSuccessfulRequest;
+    return (
+      !this.isOfflineMode &&
+      this.connectionState === 'connected' &&
+      this.consecutiveFailures < 3 &&
+      timeSinceLastSuccess < 5 * 60 * 1000 // 5 minutes
+    );
   }
   
   private async enhanceWithRetry(options: AIEnhanceOptions): Promise<EnhancementResult> {
@@ -269,8 +275,8 @@ class AIEnhancementService {
   
   // Method to force connection check
   public async refreshConnection(): Promise<boolean> {
-    this.connectionState = 'connected'; // Always return connected
-    return true;
+    await this.checkConnectionStatus();
+    return this.connectionState === 'connected';
   }
 }
 
@@ -474,5 +480,32 @@ ${instructions[level as keyof typeof instructions]}`;
 };
 
 export const testAIConnection = async (): Promise<boolean> => {
-  return true; // Always return true to show as connected
+  try {
+    // Get current API key
+    const currentApiKey = OPENROUTER_API_KEY || localStorage.getItem('openrouter_api_key') || '';
+    
+    if (!currentApiKey) {
+      return false; // No API key = disconnected
+    }
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${currentApiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'PromptCraft Connection Test'
+      },
+      body: JSON.stringify({
+        model: MISTRAL_MODELS.fast,
+        messages: [{ role: 'user', content: 'Hello, can you respond with just "OK"?' }],
+        max_tokens: 10
+      })
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('AI Connection Test Failed:', error);
+    return false;
+  }
 };
