@@ -29,7 +29,7 @@ interface PromptContextType {
   exportPrompts: () => void;
   importPrompts: (file: File) => Promise<boolean>;
   enhancePrompt: (content: string, level: 'spark' | 'glow' | 'shine') => string;
-  enhancePromptWithAI: (content: string, level: 'spark' | 'glow' | 'shine', context?: string) => Promise<EnhancementResult>;
+  enhancePromptWithAI: (content: string, level: 'spark' | 'glow' | 'shine', context?: string) => Promise<string>;
 }
 
 const PromptContext = createContext<PromptContextType | undefined>(undefined);
@@ -184,7 +184,7 @@ export const PromptProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return enhancement;
   };
 
-  const enhancePromptWithAI = async (content: string, level: 'spark' | 'glow' | 'shine', context?: string): Promise<EnhancementResult> => {
+  const enhancePromptWithAI = async (content: string, level: 'spark' | 'glow' | 'shine', context?: string): Promise<string> => {
     if (!content.trim()) {
       throw new Error('Content cannot be empty');
     }
@@ -202,11 +202,13 @@ export const PromptProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       else detectedContext = 'general';
     }
 
-    return await callAIEnhancement({
+    const fullResult = await callAIEnhancement({
       content,
       level,
       context: detectedContext
     });
+    
+    return fullResult.enhancedContent;
   };
 
   return (
