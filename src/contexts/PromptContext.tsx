@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { enhancePromptWithAI as callAIEnhancement, EnhancementResult } from '../services/aiEnhanceService';
+import { enhancePromptFull as callAIEnhancement, EnhancementResult } from '../services/aiEnhanceService';
 
 export interface Prompt {
   id: string;

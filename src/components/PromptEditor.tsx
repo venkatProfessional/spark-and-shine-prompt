@@ -158,14 +158,14 @@ export const PromptEditor: React.FC = React.memo(() => {
       
       if (useAI) {
         try {
-          const result = await enhancePromptWithAI({
+          enhanced = await enhancePromptWithAI({
             content,
             level: enhancementLevel,
             context: category,
             signal: abortController.signal
           });
-          enhanced = result.enhancedContent;
-          summary = result.improvementsSummary;
+          // Now enhancePromptWithAI returns just the enhanced content string
+          summary = ['AI enhancement applied successfully'];
         } catch (aiError: any) {
           // Check if it was cancelled
           if (aiError.name === 'AbortError' || aiError.message?.includes('cancelled')) {

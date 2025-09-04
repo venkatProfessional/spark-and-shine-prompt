@@ -273,8 +273,15 @@ class AIEnhancementService {
   }
 }
 
-// Enhanced main export function
-export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
+// Main export function - returns only the enhanced content string
+export const enhancePromptWithAI = async (options: AIEnhanceOptions): Promise<string> => {
+  const service = AIEnhancementService.getInstance();
+  const result = await service.enhance(options);
+  return result.enhancedContent;
+};
+
+// Full enhancement function - returns complete structured result
+export const enhancePromptFull = async (options: AIEnhanceOptions): Promise<EnhancementResult> => {
   const service = AIEnhancementService.getInstance();
   return service.enhance(options);
 };
