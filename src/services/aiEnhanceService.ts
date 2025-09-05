@@ -33,6 +33,7 @@ const getEnhancementPrompt = (content: string, level: string, context: string = 
     technical: 'software development, programming, and technical documentation',
     creative: 'creative writing, storytelling, and artistic expression',
     analytical: 'data analysis, research, and analytical thinking',
+    business: 'business strategy, management, and commercial applications',
     general: 'general knowledge and communication'
   };
 
@@ -397,98 +398,95 @@ const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: 
       throw new Error('No response from AI model');
     }
 
-    // Parse and validate JSON response - handle all possible formats including malformed JSON
+    // Robust parsing logic that always extracts clean content
+    return parseAIResponse(aiResponse);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+// Enhanced parsing function that ensures clean content extraction
+const parseAIResponse = (aiResponse: string): EnhancementResult => {
+  try {
+    let cleanedResponse = aiResponse.trim();
+    
+    // Remove markdown code blocks if present
+    cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    
+    // Try to parse as JSON first
+    let parsedResponse;
     try {
-      let cleanedResponse = aiResponse.trim();
-      
-      // Remove markdown code blocks if present
-      cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-      
-      // Handle case where AI returns JSON object starting with { "enhancedContent":
-      if (cleanedResponse.startsWith('{ "enhancedContent":') && !cleanedResponse.endsWith('}')) {
-        // This looks like a malformed JSON that was cut off, try to extract just the content
-        const match = cleanedResponse.match(/{ "enhancedContent":\s*"([^"]+)"/);
-        if (match) {
-          const extractedContent = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
-          const formattedContent = formatEnhancedContent(extractedContent);
-          return {
-            enhancedContent: formattedContent,
-            improvementsSummary: ['AI enhancement applied - JSON parsed'],
-            confidence: 0.8
-          };
-        }
-      }
-      
-      // Try to parse as JSON first
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(cleanedResponse);
-      } catch (jsonError) {
-        // If it's not valid JSON, treat the entire response as enhanced content
-        const formattedContent = formatEnhancedContent(aiResponse);
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (jsonError) {
+      // If it's not valid JSON, treat the entire response as enhanced content
+      const formattedContent = formatEnhancedContent(aiResponse);
+      return {
+        enhancedContent: formattedContent,
+        improvementsSummary: ['AI enhancement applied'],
+        confidence: 0.8
+      };
+    }
+    
+    // Successfully parsed JSON - extract enhancedContent
+    if (parsedResponse && typeof parsedResponse === 'object') {
+      // Case 1: Standard JSON response with enhancedContent field
+      if (parsedResponse.enhancedContent) {
+        const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
         return {
           enhancedContent: formattedContent,
-          improvementsSummary: ['AI enhancement applied'],
-          confidence: 0.7
+          improvementsSummary: Array.isArray(parsedResponse.improvementsSummary) 
+            ? parsedResponse.improvementsSummary 
+            : [parsedResponse.improvementsSummary || 'AI enhancement applied'],
+          confidence: Math.min(Math.max(Number(parsedResponse.confidence) || 0.8, 0), 1)
         };
       }
       
-      // If we successfully parsed JSON, extract the data
-      if (parsedResponse && typeof parsedResponse === 'object') {
-        // Handle case where the response is the JSON object we expect
-        if (parsedResponse.enhancedContent) {
-          const formattedContent = formatEnhancedContent(parsedResponse.enhancedContent);
-          
-          // Return ONLY the enhanced content - no JSON wrapper
-          return {
-            enhancedContent: formattedContent,
-            improvementsSummary: Array.isArray(parsedResponse.improvementsSummary) 
-              ? parsedResponse.improvementsSummary 
-              : [parsedResponse.improvementsSummary || 'AI enhancement applied'],
-            confidence: Math.min(Math.max(Number(parsedResponse.confidence) || 0.8, 0), 1)
-          };
-        }
-        
-        // Handle case where the AI returns the entire JSON as a string
-        if (typeof parsedResponse === 'string' && parsedResponse.includes('enhancedContent')) {
-          try {
-            const innerParsed = JSON.parse(parsedResponse);
-            if (innerParsed.enhancedContent) {
-              const formattedContent = formatEnhancedContent(innerParsed.enhancedContent);
-              return {
-                enhancedContent: formattedContent,
-                improvementsSummary: Array.isArray(innerParsed.improvementsSummary) 
-                  ? innerParsed.improvementsSummary 
-                  : [innerParsed.improvementsSummary || 'AI enhancement applied'],
-                confidence: Math.min(Math.max(Number(innerParsed.confidence) || 0.8, 0), 1)
-              };
-            }
-          } catch {
-            // Fall through to treat as plain text
+      // Case 2: AI returned JSON as a string value
+      if (typeof parsedResponse === 'string' && parsedResponse.includes('enhancedContent')) {
+        try {
+          const innerParsed = JSON.parse(parsedResponse);
+          if (innerParsed.enhancedContent) {
+            const formattedContent = formatEnhancedContent(innerParsed.enhancedContent);
+            return {
+              enhancedContent: formattedContent,
+              improvementsSummary: Array.isArray(innerParsed.improvementsSummary) 
+                ? innerParsed.improvementsSummary 
+                : [innerParsed.improvementsSummary || 'AI enhancement applied'],
+              confidence: Math.min(Math.max(Number(innerParsed.confidence) || 0.8, 0), 1)
+            };
           }
+        } catch {
+          // Fall through to next case
         }
       }
       
-      // If we got here, treat the parsed content as enhanced content
-      const contentToUse = typeof parsedResponse === 'string' ? parsedResponse : JSON.stringify(parsedResponse);
+      // Case 3: JSON object without enhancedContent field - use entire content
+      const contentToUse = typeof parsedResponse === 'string' ? parsedResponse : JSON.stringify(parsedResponse, null, 2);
       const formattedContent = formatEnhancedContent(contentToUse);
       return {
         enhancedContent: formattedContent,
         improvementsSummary: ['AI enhancement applied'],
         confidence: 0.7
       };
-      
-    } catch (error) {
-      // Final fallback: treat entire response as enhanced content
-      const formattedContent = formatEnhancedContent(aiResponse);
-      return {
-        enhancedContent: formattedContent,
-        improvementsSummary: ['AI enhancement applied'],
-        confidence: 0.7
-      };
     }
-  } finally {
-    clearTimeout(timeoutId);
+    
+    // Case 4: Parsed response is not an object
+    const formattedContent = formatEnhancedContent(String(parsedResponse));
+    return {
+      enhancedContent: formattedContent,
+      improvementsSummary: ['AI enhancement applied'],
+      confidence: 0.7
+    };
+    
+  } catch (error) {
+    // Final fallback: treat entire response as enhanced content
+    console.warn('Failed to parse AI response:', error);
+    const formattedContent = formatEnhancedContent(aiResponse);
+    return {
+      enhancedContent: formattedContent,
+      improvementsSummary: ['AI enhancement applied (fallback parsing)'],
+      confidence: 0.6
+    };
   }
 };
 
