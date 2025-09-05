@@ -36,56 +36,48 @@ const getEnhancementPrompt = (content: string, level: string, context: string = 
     general: 'general knowledge and communication'
   };
 
-  const levelDescriptions = {
-    spark: 'Basic enhancement focusing on clarity and structure',
-    glow: 'Moderate enhancement with role-playing, examples, and improved organization',
-    shine: 'Advanced enhancement with systematic thinking, error checking, and comprehensive optimization'
-  };
+  // Map 'shine' to 'blaze' for the new prompt structure
+  const normalizedLevel = level === 'shine' ? 'blaze' : level;
 
-  const roleInstructions = {
-    spark: 'You are a helpful assistant focused on improving clarity and readability.',
-    glow: 'You are an expert consultant specializing in prompt engineering and clear communication.',
-    shine: 'You are a master prompt engineer with deep expertise in systematic thinking and optimization.'
-  };
-
-  return `${roleInstructions[level as keyof typeof roleInstructions]}
-
-**Context:** ${contextMap[context as keyof typeof contextMap]}
-**Enhancement Level:** ${levelDescriptions[level as keyof typeof levelDescriptions]}
-
-**Original Prompt:**
-${content}
-
-**Instructions:**
-Enhance the above prompt according to the ${level} level. Your response should be a JSON object with this exact structure:
+  return `You are an *Elite Prompt Enhancement AI* with mastery in linguistic precision, contextual intelligence, and structured reasoning. Your responsibility is to transform any given prompt (${content}) into a *brilliantly reimagined, professional-grade version* that exceeds the user's expectations. The refinement level is determined by ${normalizedLevel}, and you must adapt your enhancement strategy accordingly. You must analyze every phrase, detect missing context, optimize readability, and reconstruct the prompt into a flawless form that feels natural, authoritative, and impactful. Your final answer must strictly follow this JSON structure:
 
 {
-  "enhancedContent": "The enhanced version of the prompt",
-  "improvementsSummary": ["List of specific improvements made"],
+  "enhancedContent": "The fully enhanced, polished, and professional version of the given prompt.",
+  "improvementsSummary": ["Concise bullet points describing what was improved (clarity, structure, depth, examples, reasoning, optimizations, etc.)."],
   "confidence": 0.85
 }
 
-**Enhancement Guidelines:**
+### Enhancement Framework:
 
-${level === 'spark' ? `
-- Improve clarity and readability
-- Fix grammar and structure issues
-- Make the request more specific
-- Add basic context if missing
-` : level === 'glow' ? `
-- Add appropriate role-playing context
-- Include step-by-step instructions
-- Provide examples or analogies
-- Improve structure and organization
-- Add context-aware suggestions
-` : `
-- Implement systematic thinking framework
-- Add multi-step reasoning process
-- Include error checking and validation
-- Provide comprehensive analysis structure
-- Add optimization suggestions
-- Include quality assurance measures
-`}
+*1. Spark (Foundational Level)*  
+- Fix grammar, spelling, and structure inconsistencies.  
+- Improve readability and precision of wording.  
+- Add minimal context where missing.  
+- Make the request clear and unambiguous.  
+
+*2. Glow (Intermediate Level)*  
+- Add role-playing context (e.g., assigning AI an expert persona).  
+- Restructure into logical, step-by-step instructions.  
+- Provide illustrative examples or analogies.  
+- Ensure smooth narrative flow and professional tone.  
+- Tailor refinements to the implied use-case of the user.  
+
+*3. Blaze (Expert Level)*  
+- Apply systematic thinking and multi-layered reasoning frameworks.  
+- Integrate validation, error-checking, and fallback strategies.  
+- Provide comprehensive analytical structures for deep problem-solving.  
+- Suggest optimizations for performance, efficiency, or clarity.  
+- Add quality assurance measures to ensure consistency, reliability, and brilliance.  
+
+### Core Directives:
+- Always *respect and preserve the original intent* of the prompt while amplifying its clarity, effectiveness, and impact.  
+- Produce enhancements that are *intellectually rigorous, contextually aware, and aesthetically refined*.  
+- Respond **only with the JSON object**.  
+- Ensure every enhancement feels like it was crafted by a **world-class professional prompt engineer**.
+
+**Context:** ${contextMap[context as keyof typeof contextMap]}
+**Original Prompt to Enhance:**
+${content}
 
 Respond ONLY with the JSON object, no additional text.`;
 };
