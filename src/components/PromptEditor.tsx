@@ -48,6 +48,7 @@ export const PromptEditor: React.FC = React.memo(() => {
   const [newTag, setNewTag] = useState('');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [enhancementLevel, setEnhancementLevel] = useState<'spark' | 'glow' | 'shine'>('glow');
+  const [lineCount, setLineCount] = useState<number>(0); // 0 means no line limit
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [useAI, setUseAI] = useState(true);
   const [enhancementSummary, setEnhancementSummary] = useState<string[]>([]);
@@ -162,6 +163,7 @@ export const PromptEditor: React.FC = React.memo(() => {
             content,
             level: enhancementLevel,
             context: category,
+            lineCount: lineCount > 0 ? lineCount : undefined,
             signal: abortController.signal
           });
           // Now enhancePromptWithAI returns just the enhanced content string
@@ -507,7 +509,7 @@ export const PromptEditor: React.FC = React.memo(() => {
                     <Brain className="h-3 w-3 mr-2" />
                     {useAI ? 'AI Mode' : 'Local Mode'}
                   </Button>
-                  <div className="flex gap-2">
+                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -536,8 +538,26 @@ export const PromptEditor: React.FC = React.memo(() => {
                       {isMobile ? '💫' : 'Shine'}
                     </Button>
                   </div>
-                </div>
-              </div>
+                  <select
+                    value={lineCount}
+                    onChange={(e) => setLineCount(Number(e.target.value))}
+                    className="text-xs bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg px-2 py-1 focus:border-primary outline-none transition-all duration-300 hover:border-primary/50 hover:bg-card"
+                    title="Number of lines for enhanced prompt"
+                  >
+                    <option value={0}>Any length</option>
+                    <option value={1}>1 line</option>
+                    <option value={2}>2 lines</option>
+                    <option value={3}>3 lines</option>
+                    <option value={4}>4 lines</option>
+                    <option value={5}>5 lines</option>
+                    <option value={6}>6 lines</option>
+                    <option value={7}>7 lines</option>
+                    <option value={8}>8 lines</option>
+                    <option value={9}>9 lines</option>
+                    <option value={10}>10 lines</option>
+                   </select>
+                 </div>
+               </div>
               
               <Textarea
                 value={content}
