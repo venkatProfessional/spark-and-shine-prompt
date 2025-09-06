@@ -19,7 +19,6 @@ export interface AIEnhanceOptions {
   level: 'spark' | 'glow' | 'shine';
   content: string;
   context?: string;
-  lineCount?: number;
   signal?: AbortSignal;
 }
 
@@ -29,7 +28,7 @@ export interface EnhancementResult {
   confidence: number;
 }
 
-const getEnhancementPrompt = (content: string, level: string, context: string = 'general', lineCount?: number): string => {
+const getEnhancementPrompt = (content: string, level: string, context: string = 'general'): string => {
   const contextMap = {
     technical: 'software development, programming, and technical documentation',
     creative: 'creative writing, storytelling, and artistic expression',
@@ -40,11 +39,8 @@ const getEnhancementPrompt = (content: string, level: string, context: string = 
 
   // Map 'shine' to 'blaze' for the new prompt structure
   const normalizedLevel = level === 'shine' ? 'blaze' : level;
-  
-  // Add line count constraint if specified
-  const lineConstraint = lineCount ? `\n\n**CRITICAL LINE COUNT CONSTRAINT:** The enhanced content must be EXACTLY ${lineCount} lines long. This is MANDATORY. Count each line carefully and ensure the final output has exactly ${lineCount} lines - no more, no less. Each line should end with a line break (\\n). This constraint overrides all other formatting preferences. STRICT REQUIREMENT: ${lineCount} lines only.` : '';
 
-  return `You are an *Elite Prompt Enhancement AI* with mastery in linguistic precision, contextual intelligence, structured reasoning, and deep domain expertise. Your responsibility is to transform any given prompt (${content}) into a *brilliantly reimagined, comprehensive, professional-grade version* that exceeds expectations and demonstrates profound technical knowledge. The refinement level is determined by ${normalizedLevel}, and you must adapt your enhancement strategy accordingly.${lineConstraint}
+  return `You are an *Elite Prompt Enhancement AI* with mastery in linguistic precision, contextual intelligence, structured reasoning, and deep domain expertise. Your responsibility is to transform any given prompt (${content}) into a *brilliantly reimagined, comprehensive, professional-grade version* that exceeds expectations and demonstrates profound technical knowledge. The refinement level is determined by ${normalizedLevel}, and you must adapt your enhancement strategy accordingly.
 
 You must analyze every phrase, detect missing context, expand technical depth, optimize readability, and reconstruct the prompt into a flawless form that feels natural, authoritative, and demonstrates expert-level understanding of the subject matter.
 
@@ -122,7 +118,7 @@ When enhancing technical prompts, you MUST:
 - Respond **only with the JSON object**.  
 - Ensure every enhancement feels like it was crafted by a **world-class technical expert and professional prompt engineer**.
 
-**Context:** ${contextMap[context as keyof typeof contextMap]}${lineConstraint}
+**Context:** ${contextMap[context as keyof typeof contextMap]}
 **Original Prompt to Enhance:**
 ${content}
 
@@ -339,7 +335,7 @@ export const getAIService = (): AIEnhancementService => {
 
 // Separate function for making AI requests
 const makeAIRequest = async (options: AIEnhanceOptions, model: string, attempt: number): Promise<EnhancementResult> => {
-  const prompt = getEnhancementPrompt(options.content, options.level, options.context, options.lineCount);
+  const prompt = getEnhancementPrompt(options.content, options.level, options.context);
   
   // Use external abort signal if provided, otherwise create our own
   const controller = new AbortController();
