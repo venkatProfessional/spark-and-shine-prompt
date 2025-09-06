@@ -163,7 +163,7 @@ export const PromptEditor: React.FC = React.memo(() => {
             content,
             level: enhancementLevel,
             context: category,
-            lineCount: lineCount,
+            lineCount: lineCount > 0 ? lineCount : undefined,
             signal: abortController.signal
           });
           // Now enhancePromptWithAI returns just the enhanced content string
@@ -544,6 +544,7 @@ export const PromptEditor: React.FC = React.memo(() => {
                     className="text-xs bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg px-2 py-1 focus:border-primary outline-none transition-all duration-300 hover:border-primary/50 hover:bg-card"
                     title="Number of lines for enhanced prompt"
                   >
+                    <option value={0}>Any lines</option>
                     <option value={3}>3 lines</option>
                     <option value={4}>4 lines</option>
                     <option value={5}>5 lines</option>
