@@ -48,7 +48,7 @@ export const PromptEditor: React.FC = React.memo(() => {
   const [newTag, setNewTag] = useState('');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [enhancementLevel, setEnhancementLevel] = useState<'spark' | 'glow' | 'shine'>('glow');
-  const [lineCount, setLineCount] = useState<number>(0); // 0 means no line limit
+  const [lineCount, setLineCount] = useState<number>(3); // Default to 3 lines
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [useAI, setUseAI] = useState(true);
   const [enhancementSummary, setEnhancementSummary] = useState<string[]>([]);
@@ -163,7 +163,7 @@ export const PromptEditor: React.FC = React.memo(() => {
             content,
             level: enhancementLevel,
             context: category,
-            lineCount: lineCount > 0 ? lineCount : undefined,
+            lineCount: lineCount,
             signal: abortController.signal
           });
           // Now enhancePromptWithAI returns just the enhanced content string
@@ -544,9 +544,6 @@ export const PromptEditor: React.FC = React.memo(() => {
                     className="text-xs bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg px-2 py-1 focus:border-primary outline-none transition-all duration-300 hover:border-primary/50 hover:bg-card"
                     title="Number of lines for enhanced prompt"
                   >
-                    <option value={0}>Any length</option>
-                    <option value={1}>1 line</option>
-                    <option value={2}>2 lines</option>
                     <option value={3}>3 lines</option>
                     <option value={4}>4 lines</option>
                     <option value={5}>5 lines</option>
@@ -555,7 +552,7 @@ export const PromptEditor: React.FC = React.memo(() => {
                     <option value={8}>8 lines</option>
                     <option value={9}>9 lines</option>
                     <option value={10}>10 lines</option>
-                   </select>
+                  </select>
                  </div>
                </div>
               

@@ -42,7 +42,7 @@ const getEnhancementPrompt = (content: string, level: string, context: string = 
   const normalizedLevel = level === 'shine' ? 'blaze' : level;
   
   // Add line count constraint if specified
-  const lineConstraint = lineCount ? `\n\n**CRITICAL CONSTRAINT:** The enhanced content must be EXACTLY ${lineCount} lines long. Count each line carefully and ensure the final output has exactly ${lineCount} lines, no more, no less. This is a hard requirement that must be strictly followed.` : '';
+  const lineConstraint = lineCount ? `\n\n**CRITICAL LINE COUNT CONSTRAINT:** The enhanced content must be EXACTLY ${lineCount} lines long. This is MANDATORY. Count each line carefully and ensure the final output has exactly ${lineCount} lines - no more, no less. Each line should end with a line break (\\n). This constraint overrides all other formatting preferences. STRICT REQUIREMENT: ${lineCount} lines only.` : '';
 
   return `You are an *Elite Prompt Enhancement AI* with mastery in linguistic precision, contextual intelligence, structured reasoning, and deep domain expertise. Your responsibility is to transform any given prompt (${content}) into a *brilliantly reimagined, comprehensive, professional-grade version* that exceeds expectations and demonstrates profound technical knowledge. The refinement level is determined by ${normalizedLevel}, and you must adapt your enhancement strategy accordingly.${lineConstraint}
 
