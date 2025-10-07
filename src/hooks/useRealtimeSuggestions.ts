@@ -57,38 +57,42 @@ export const useRealtimeSuggestions = ({
       abortControllerRef.current = controller;
 
       try {
-        // Generate quick suggestions using AI
+        // Generate quick suggestions using AI with 3-line constraint
+        const enhancementPrompt = `Enhance the following text into EXACTLY 3 lines. Keep it concise, clear, and impactful. Make sure the output is exactly 3 lines, no more, no less.
+
+Original text:
+${content}
+
+Enhanced version (must be exactly 3 lines):`;
+
         const enhanced = await enhancePromptWithAI({
-          content,
-          level: 'spark', // Use quick enhancement for real-time
+          content: enhancementPrompt,
+          level: 'spark',
           context,
           signal: controller.signal
         });
 
-        // Create suggestions from the enhanced content
-        const newSuggestions: Suggestion[] = [];
-
-        // Completion suggestion (if enhanced is longer)
-        if (enhanced.length > content.length) {
-          const completion = enhanced.slice(content.length).trim();
-          if (completion) {
-            newSuggestions.push({
-              text: completion,
-              type: 'completion',
-              confidence: 0.8
-            });
-          }
+        // Ensure exactly 3 lines
+        const lines = enhanced.trim().split('\n').filter(line => line.trim().length > 0);
+        let threeLineVersion: string;
+        
+        if (lines.length > 3) {
+          // Take first 3 lines if more
+          threeLineVersion = lines.slice(0, 3).join('\n');
+        } else if (lines.length < 3) {
+          // Pad with the original content split if less
+          const originalLines = content.split('\n').filter(l => l.trim());
+          threeLineVersion = [...lines, ...originalLines].slice(0, 3).join('\n');
+        } else {
+          threeLineVersion = lines.join('\n');
         }
 
-        // Improvement suggestion (shortened enhanced version)
-        const improvementSnippet = enhanced.split('\n').slice(0, 3).join('\n');
-        if (improvementSnippet !== content && improvementSnippet.length <= 200) {
-          newSuggestions.push({
-            text: improvementSnippet,
-            type: 'improvement',
-            confidence: 0.75
-          });
-        }
+        // Create suggestions
+        const newSuggestions: Suggestion[] = [{
+          text: threeLineVersion,
+          type: 'improvement',
+          confidence: 0.85
+        }];
 
         setSuggestions(newSuggestions);
         setIsLoading(false);
