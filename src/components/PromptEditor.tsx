@@ -7,6 +7,7 @@ import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getAIService, enhancePromptWithAI } from '../services/aiEnhanceService';
+import { useRealtimeSuggestions } from '../hooks/useRealtimeSuggestions';
 import { 
   Save, 
   Sparkles, 
@@ -24,6 +25,9 @@ import {
   Brain
 } from 'lucide-react';
 import AIEnhancementLoader from './AIEnhancementLoader';
+import { RealtimeSuggestions } from './RealtimeSuggestions';
+import { GrammarStyleChecker } from './GrammarStyleChecker';
+import { CustomizationPanel, CustomizationOptions } from './CustomizationPanel';
 
 export const PromptEditor: React.FC = React.memo(() => {
   const { 
@@ -54,6 +58,26 @@ export const PromptEditor: React.FC = React.memo(() => {
   const [aiConnectionState, setAiConnectionState] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [isRefreshingConnection, setIsRefreshingConnection] = useState(false);
   const [enhancementAbortController, setEnhancementAbortController] = useState<AbortController | null>(null);
+  const [realtimeSuggestionsEnabled, setRealtimeSuggestionsEnabled] = useState(false);
+  const [customizationExpanded, setCustomizationExpanded] = useState(false);
+  const [customizationOptions, setCustomizationOptions] = useState<CustomizationOptions>({
+    tone: 'professional',
+    length: 'moderate',
+    style: 'default',
+    complexity: 3
+  });
+
+  // Real-time suggestions hook
+  const {
+    suggestions,
+    isLoading: isSuggestionsLoading,
+    error: suggestionsError,
+    clearSuggestions
+  } = useRealtimeSuggestions({
+    content,
+    context: category,
+    enabled: realtimeSuggestionsEnabled && !isEnhancing
+  });
 
   // Load current prompt data
   useEffect(() => {
@@ -313,6 +337,19 @@ export const PromptEditor: React.FC = React.memo(() => {
     }
   };
 
+  const handleApplySuggestion = (suggestion: { text: string; type: string }) => {
+    if (suggestion.type === 'completion') {
+      setContent(content + ' ' + suggestion.text);
+    } else {
+      setContent(suggestion.text);
+    }
+    clearSuggestions();
+    toast({
+      title: "✨ Suggestion Applied",
+      description: "AI suggestion has been applied to your content",
+    });
+  };
+
   const renderDiffView = () => {
     if (!content || !enhancedContent) return null;
 
@@ -498,15 +535,24 @@ export const PromptEditor: React.FC = React.memo(() => {
                   <h3 className="font-semibold text-lg">Craft Your Prompt</h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setUseAI(!useAI)}
-                    className={`transition-all duration-300 hover:scale-105 ${useAI ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : 'bg-muted/50 hover:bg-muted/80'}`}
-                  >
-                    <Brain className="h-3 w-3 mr-2" />
-                    {useAI ? 'AI Mode' : 'Local Mode'}
-                  </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setUseAI(!useAI)}
+                     className={`transition-all duration-300 hover:scale-105 ${useAI ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : 'bg-muted/50 hover:bg-muted/80'}`}
+                   >
+                     <Brain className="h-3 w-3 mr-2" />
+                     {useAI ? 'AI Mode' : 'Local Mode'}
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setRealtimeSuggestionsEnabled(!realtimeSuggestionsEnabled)}
+                     className={`transition-all duration-300 hover:scale-105 ${realtimeSuggestionsEnabled ? 'bg-accent/20 text-accent border-accent/30 hover:bg-accent/30' : 'bg-muted/50 hover:bg-muted/80'}`}
+                   >
+                     <Sparkles className="h-3 w-3 mr-2" />
+                     {realtimeSuggestionsEnabled ? 'Live Suggestions On' : 'Live Suggestions Off'}
+                   </Button>
                    <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -539,11 +585,33 @@ export const PromptEditor: React.FC = React.memo(() => {
                 </div>
                </div>
               
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="✨ Enter your prompt here... Be creative!"
-                className={`resize-none prompt-editor transition-all duration-300 ${isMobile ? 'min-h-[300px]' : 'min-h-[400px]'} bg-card/30 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:bg-card/50`}
+              <div className="relative">
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="✨ Enter your prompt here... Be creative!"
+                  className={`resize-none prompt-editor transition-all duration-300 ${isMobile ? 'min-h-[300px]' : 'min-h-[400px]'} bg-card/30 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:bg-card/50`}
+                />
+                
+                {/* Real-time suggestions */}
+                <RealtimeSuggestions
+                  suggestions={suggestions}
+                  isLoading={isSuggestionsLoading}
+                  error={suggestionsError}
+                  onApplySuggestion={handleApplySuggestion}
+                  onDismiss={clearSuggestions}
+                />
+              </div>
+
+              {/* Grammar and Style Checker */}
+              <GrammarStyleChecker content={content} />
+
+              {/* Customization Panel */}
+              <CustomizationPanel
+                options={customizationOptions}
+                onChange={setCustomizationOptions}
+                isExpanded={customizationExpanded}
+                onToggle={() => setCustomizationExpanded(!customizationExpanded)}
               />
 
               <div className="flex items-center justify-center">
